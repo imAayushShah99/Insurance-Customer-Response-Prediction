@@ -1,7 +1,9 @@
-imblearn==0.0
-joblib==1.4.2
-matplotlib==3.10.1
-numpy==2.2.4
 pandas==2.2.3
+numpy==2.2.4
 scikit-learn==1.6.1
 seaborn==0.13.2
+matplotlib==3.10.1
+joblib==1.4.2
+psycopg2==2.9.10
+python-dotenv==1.1.0
+imbalanced-learn==0.13.0

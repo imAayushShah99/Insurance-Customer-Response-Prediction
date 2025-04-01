@@ -1,46 +1,44 @@
 import streamlit as st
+import pandas as pd
 import joblib
 import numpy as np
-import pandas as pd
 
-# Load the trained model
+# Load the trained model and scaler
 model = joblib.load("random_forest_model.joblib")
+scaler = joblib.load("scaler.joblib")
 
-# Define expected feature names
-expected_columns = ['Gender', 'Age', 'Driving_License', 'Region_Code', 'Previously_Insured',
-                    'Vehicle_Age', 'Vehicle_Damage', 'Annual_Premium', 'Policy_Sales_Channel', 'Vintage']
+# Define input fields
+st.title("Insurance Policy Response Prediction")
+st.write("Enter the details below to predict if a customer will respond to the insurance policy.")
 
-st.title("Insurance Purchase Prediction")
+# User Inputs
+age = st.number_input("Age", min_value=18, max_value=100, value=30)
+gender = st.selectbox("Gender", ["Male", "Female"])
+region_code = st.number_input("Region Code", min_value=1, max_value=50, value=10)
+previously_insured = st.selectbox("Previously Insured", ["No", "Yes"])
+vehicle_age = st.selectbox("Vehicle Age", ["< 1 Year", "1-2 Year", "> 2 Years"])
+vehicle_damage = st.selectbox("Vehicle Damage", ["No", "Yes"])
+annual_premium = st.number_input("Annual Premium", min_value=1000, max_value=100000, value=30000)
+policy_sales_channel = st.number_input("Policy Sales Channel", min_value=1, max_value=200, value=26)
 
-# User input fields
-Gender = st.selectbox("Gender - (0:Female , 1:Male)", [0, 1])  
-Age = st.number_input("Age", min_value=18, max_value=100, value=30, step=1)  # Ensure integer input
-Driving_License = st.selectbox("Driving License - (0:No , 1:Yes)", [0, 1])  
-Region_Code = st.number_input("Region Code", min_value=0.0, max_value=50.0, value=10.0)  
-Previously_Insured = st.selectbox("Previously Insured - (0:No , 1:Yes)", [0, 1])  
-Vehicle_Age = st.selectbox("Vehicle Age", ['< 1 Year', '1-2 Year', '> 2 Years'])  
-Vehicle_Damage = st.selectbox("Vehicle Damage", [0, 1])  
-Annual_Premium = st.number_input("Annual Premium", min_value=1000.0, max_value=100000.0, value=30000.0)  
-Policy_Sales_Channel = st.number_input("Policy Sales Channel", min_value=0.0, max_value=150.0, value=26.0)  
-Vintage = st.number_input("Vintage (Days)", min_value=0, max_value=300, value=100, step=1)  # Ensure integer input  
+# Encode categorical variables
+gender_encoded = 1 if gender == "Male" else 0
+previously_insured_encoded = 1 if previously_insured == "Yes" else 0
+vehicle_age_encoded = {"< 1 Year": 0, "1-2 Year": 1, "> 2 Years": 2}[vehicle_age]
+vehicle_damage_encoded = 1 if vehicle_damage == "Yes" else 0
 
-# Convert categorical data
-vehicle_age_mapping = {'< 1 Year': 0, '1-2 Year': 1, '> 2 Years': 2}
-Vehicle_Age = vehicle_age_mapping[Vehicle_Age]
+# Create input array
+input_data = np.array([[age, gender_encoded, region_code, previously_insured_encoded, vehicle_age_encoded, vehicle_damage_encoded, annual_premium, policy_sales_channel]])
 
-# Ensure correct data types
-input_data = pd.DataFrame([[Gender, int(Age), Driving_License, Region_Code, Previously_Insured,
-                            Vehicle_Age, Vehicle_Damage, Annual_Premium, Policy_Sales_Channel, int(Vintage)]],
-                          columns=expected_columns)
+# Scale numerical features
+input_data[:, [0, 6]] = scaler.transform(input_data[:, [0, 6]])
 
-# Check column names to match model expectations
-if list(input_data.columns) != expected_columns:
-    st.write("Error: Feature names do not match model expectations.")
-
-# Perform prediction
+# Predict
 if st.button("Predict"):
-    try:
-        prediction = model.predict(input_data)[0]
-        st.write("Prediction:", "You seem to be interested" if prediction == 1 else "You seem to be not interested")
-    except Exception as e:
-        st.write("Error in prediction:", str(e))
+    prediction = model.predict(input_data)[0]
+    probability = model.predict_proba(input_data)[0][1]
+    
+    if prediction == 1:
+        st.success(f"The customer is likely to respond. Probability: {probability:.2f}")
+    else:
+        st.error(f"The customer is unlikely to respond. Probability: {probability:.2f}")
